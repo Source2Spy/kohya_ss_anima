@@ -11,8 +11,6 @@ This project provides a user-friendly Gradio-based Graphical User Interface (GUI
 Stable Diffusion training empowers users to customize image generation models by fine-tuning existing models, creating unique artistic styles, 
 and training specialized models like LoRA (Low-Rank Adaptation).
 
-## Use sageattention to double training speed (manual installation required).
-
 ## Table of Contents
 
 - [Installation Options](#installation-options)
