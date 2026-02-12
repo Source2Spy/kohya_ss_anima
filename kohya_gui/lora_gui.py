@@ -336,6 +336,7 @@ def save_configuration(
     anima_cache_text_encoder_outputs_to_disk,
     anima_blocks_to_swap,
     anima_unsloth_offload_checkpointing,
+    anima_disable_mmap_load_safetensors,
     anima_vae_chunk_size,
     anima_vae_disable_cache,
     anima_train_llm_adapter,
@@ -641,6 +642,7 @@ def open_configuration(
     anima_cache_text_encoder_outputs_to_disk,
     anima_blocks_to_swap,
     anima_unsloth_offload_checkpointing,
+    anima_disable_mmap_load_safetensors,
     anima_vae_chunk_size,
     anima_vae_disable_cache,
     anima_train_llm_adapter,
@@ -1037,6 +1039,7 @@ def train_model(
     anima_cache_text_encoder_outputs_to_disk,
     anima_blocks_to_swap,
     anima_unsloth_offload_checkpointing,
+    anima_disable_mmap_load_safetensors,
     anima_vae_chunk_size,
     anima_vae_disable_cache,
     anima_train_llm_adapter,
@@ -1587,9 +1590,7 @@ def train_model(
     # Flag to train text encoder only if its learning rate is non-zero and unet's is zero.
     network_train_text_encoder_only = text_encoder_lr_float != 0 and unet_lr_float == 0
     # Flag to train unet only if its learning rate is non-zero and text encoder's is zero.
-    # For Anima: always unet-only — TE LoRA is not applied at inference, so training it wastes
-    # memory and produces unreloadable lora_te_* keys that confuse ComfyUI.
-    network_train_unet_only = (text_encoder_lr_float == 0 and unet_lr_float != 0) or anima_checkbox
+    network_train_unet_only = text_encoder_lr_float == 0 and unet_lr_float != 0
 
     clip_l_value = None
     if sd3_checkbox:
@@ -1608,6 +1609,8 @@ def train_model(
     disable_mmap_load_safetensors_value = None
     if sd3_checkbox:
         disable_mmap_load_safetensors_value = sd3_disable_mmap_load_safetensors
+    elif anima_checkbox:
+        disable_mmap_load_safetensors_value = anima_disable_mmap_load_safetensors
 
     config_toml_data = {
         "adaptive_noise_scale": (
@@ -3161,6 +3164,7 @@ def lora_tab(
             anima_training.anima_cache_text_encoder_outputs_to_disk,
             anima_training.anima_blocks_to_swap,
             anima_training.anima_unsloth_offload_checkpointing,
+            anima_training.anima_disable_mmap_load_safetensors,
             anima_training.vae_chunk_size,
             anima_training.vae_disable_cache,
             anima_training.anima_train_llm_adapter,
