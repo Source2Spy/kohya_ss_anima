@@ -11,6 +11,14 @@ This project provides a user-friendly Gradio-based Graphical User Interface (GUI
 Stable Diffusion training empowers users to customize image generation models by fine-tuning existing models, creating unique artistic styles, 
 and training specialized models like LoRA (Low-Rank Adaptation).
 
+# Don't forget patch your lora by convert_anima_lora_to_comfy.py 
+
+As example: 
+```toml
+python networks\convert_anima_lora_to_comfy.py E:\AI-Base\test\SaikonoAnima_V0T1.safetensors E:\AI-Base\test\SaikonoAnima_V0T1_Patched.safetensors
+```
+This will fix the loading of encoder weights in ComfyUI, and possibly in other UIs.
+
 ## Table of Contents
 
 - [Installation Options](#installation-options)
