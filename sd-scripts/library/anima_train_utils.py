@@ -5,7 +5,7 @@ import gc
 import math
 import os
 import time
-from typing import Optional, Tuple
+from typing import Optional
 
 import numpy as np
 import torch
@@ -112,10 +112,10 @@ def add_anima_training_arguments(parser: argparse.ArgumentParser):
     )
     parser.add_argument(
         "--attn_mode",
-        choices=["torch", "xformers", "sdpa"],  # "sdpa" is for backward compatibility
+        choices=["torch", "xformers", "flash", "sageattn", "sdpa"],  # "sdpa" is for backward compatibility
         default=None,
-        help="Attention implementation to use. Default is None (torch). xformers requires --split_attn. This option overrides --xformers or --sdpa."
-        " / 使用するAttentionの実装。デフォルトはNone（torch）です。xformersは--split_attnの指定が必要です。このオプションは--xformersまたは--sdpaを上書きします。",
+        help="Attention implementation to use. Default is None (torch). xformers requires --split_attn. sageattn does not support training (inference only). This option overrides --xformers or --sdpa."
+        " / 使用するAttentionの実装。デフォルトはNone（torch）です。xformersは--split_attnの指定が必要です。sageattnはトレーニングをサポートしていません（推論のみ）。このオプションは--xformersまたは--sdpaを上書きします。",
     )
     parser.add_argument(
         "--split_attn",
