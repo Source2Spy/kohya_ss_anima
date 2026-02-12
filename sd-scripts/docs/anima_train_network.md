@@ -133,6 +133,10 @@ accelerate launch --num_cpu_threads_per_process 1 anima_train_network.py \
 
 *(Write the command on one line or use `\` or `^` for line breaks.)*
 
+The learning rate of `1e-4` is just an example. Adjust it according to your dataset and objectives. This value is for `alpha=1.0` (default). If increasing `--network_alpha`, consider lowering the learning rate.
+
+If loss becomes NaN, ensure you are using PyTorch version 2.5 or higher.
+
 **Note:** `--vae_chunk_size` and `--vae_disable_cache` are custom options in this repository to reduce memory usage of the Qwen-Image VAE.
 
 <details>
@@ -143,6 +147,10 @@ accelerate launch --num_cpu_threads_per_process 1 anima_train_network.py \
 コマンドラインの例は英語のドキュメントを参照してください。
 
 ※実際には1行で書くか、適切な改行文字（`\` または `^`）を使用してください。
+
+学習率1e-4はあくまで一例です。データセットや目的に応じて適切に調整してください。またこの値はalpha=1.0（デフォルト）での値です。`--network_alpha`を増やす場合は学習率を下げることを検討してください。
+
+lossがNaNになる場合は、PyTorchのバージョンが2.5以上であることを確認してください。
 
 注意: `--vae_chunk_size`および`--vae_disable_cache`は当リポジトリ独自のオプションで、Qwen-Image VAEのメモリ使用量を削減するために使用します。
 
@@ -346,6 +354,8 @@ To apply LoRA to the LLM Adapter blocks:
 --network_args "train_llm_adapter=True"
 ```
 
+In preliminary tests, lowering the learning rate for the LLM Adapter seems to improve stability. Adjust it using something like: `"network_reg_lrs=.*llm_adapter.*=5e-5"`.
+
 ### 5.4. Other Network Args / その他のネットワーク引数
 
 * `--network_args "verbose=True"` - Print all LoRA module names and their dimensions.
@@ -395,6 +405,8 @@ To apply LoRA to the LLM Adapter blocks:
 ### 5.3. LLM Adapter LoRA
 
 LLM AdapterブロックにLoRAを適用するには：`--network_args "train_llm_adapter=True"`
+
+簡易な検証ではLLM Adapterの学習率はある程度下げた方が安定するようです。`"network_reg_lrs=.*llm_adapter.*=5e-5"`などで調整してください。
 
 ### 5.4. その他のネットワーク引数
 
@@ -492,6 +504,10 @@ The `--weighting_scheme` option specifies loss weighting by timestep:
 
 Caption dropout uses the `caption_dropout_rate` setting from the dataset configuration (per-subset in TOML). When using `--cache_text_encoder_outputs`, the dropout rate is stored with each cached entry and applied during training, so caption dropout is compatible with text encoder output caching.
 
+**If you change the `caption_dropout_rate` setting, you must delete and regenerate the cache.**
+
+Note: Currently, only Anima supports combining `caption_dropout_rate` with text encoder output caching.
+
 <details>
 <summary>日本語</summary>
 
@@ -517,7 +533,11 @@ Caption dropout uses the `caption_dropout_rate` setting from the dataset configu
 
 #### キャプションドロップアウト
 
-キャプションドロップアウトにはデータセット設定（TOMLでのサブセット単位）の`caption_dropout_rate`を使用します。`--cache_text_encoder_outputs`使用時は、ドロップアウト率が各キャッシュエントリとともに保存され、学習中に適用されるため、テキストエンコーダー出力キャッシュとの互換性があります。
+キャプションドロップアウトにはデータセット設定（TOMLでのサブセット単位）の`caption_dropout_rate`を使用します。`--cache_text_encoder_outputs`使用時は、ドロップアウト率が各キャッシュエントリとともに保存され、学習中に適用されるため、テキストエンコーダー出力キャッシュと同時に使用できます。
+
+**`caption_dropout_rate`の設定を変えた場合、キャッシュを削除し、再生成する必要があります。**
+
+※`caption_dropout_rate`をテキストエンコーダー出力キャッシュと組み合わせられるのは、今のところAnimaのみです。
 
 </details>
 
@@ -573,7 +593,35 @@ Qwen3に個別の学習率を指定するには`--text_encoder_lr`を使用し�
 
 </details>
 
-## 9. Others / その他
+## 9. Related Tools / 関連ツール
+
+### `networks/anima_convert_lora_to_comfy.py`
+
+A script to convert LoRA models to ComfyUI-compatible format. ComfyUI does not directly support sd-scripts format Qwen3 LoRA, so conversion is necessary (conversion may not be needed for DiT-only LoRA). You can convert from the sd-scripts format to ComfyUI format with:
+
+```bash
+python networks/convert_anima_lora_to_comfy.py path/to/source.safetensors path/to/destination.safetensors
+```
+
+Using the `--reverse` option allows conversion in the opposite direction (ComfyUI format to sd-scripts format). However, reverse conversion is only possible for LoRAs converted by this script. LoRAs created with other training tools cannot be converted.
+
+<details>
+<summary>日本語</summary>
+
+**`networks/convert_anima_lora_to_comfy.py`**
+
+LoRAモデルをComfyUI互換形式に変換するスクリプト。ComfyUIがsd-scripts形式のQwen3 LoRAを直接サポートしていないため、変換が必要です（DiTのみのLoRAの場合は変換不要のようです）。sd-scripts形式からComfyUI形式への変換は以下のコマンドで行います：
+
+```bash
+python networks/convert_anima_lora_to_comfy.py path/to/source.safetensors path/to/destination.safetensors
+```
+
+`--reverse`オプションを付けると、逆変換（ComfyUI形式からsd-scripts形式）も可能です。ただし、逆変換ができるのはこのスクリプトで変換したLoRAに限ります。他の学習ツールで作成したLoRAは変換できません。
+
+</details>
+
+
+## 10. Others / その他
 
 ### Metadata Saved in LoRA Models
 
