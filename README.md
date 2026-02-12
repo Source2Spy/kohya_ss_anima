@@ -1,22 +1,15 @@
-# Kohya's GUI
+# Kohya's GUI Anima
 
 [![GitHub stars](https://img.shields.io/github/stars/bmaltais/kohya_ss?style=social)](https://github.com/bmaltais/kohya_ss/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/bmaltais/kohya_ss?style=social)](https://github.com/bmaltais/kohya_ss/network/members)
 [![License](https://img.shields.io/github/license/bmaltais/kohya_ss)](LICENSE.md)
 [![GitHub issues](https://img.shields.io/github/issues/bmaltais/kohya_ss)](https://github.com/bmaltais/kohya_ss/issues)
 
-This is a GUI and CLI for training diffusion models.
+This is a GUI and CLI for training anima diffusion model.
 
 This project provides a user-friendly Gradio-based Graphical User Interface (GUI) for [Kohya's Stable Diffusion training scripts](https://github.com/kohya-ss/sd-scripts). 
 Stable Diffusion training empowers users to customize image generation models by fine-tuning existing models, creating unique artistic styles, 
 and training specialized models like LoRA (Low-Rank Adaptation).
-
-Key features of this GUI include:
-*   Easy-to-use interface for setting a wide range of training parameters.
-*   Automatic generation of the command-line interface (CLI) commands required to run the training scripts.
-*   Support for various training methods, including LoRA, Dreambooth, fine-tuning, and SDXL training.
-
-Support for Linux and macOS is also available. While Linux support is actively maintained through community contributions, macOS compatibility may vary.
 
 ## Table of Contents
 
