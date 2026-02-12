@@ -183,7 +183,7 @@ class animaTraining:
                     self.anima_torch_compile = gr.Checkbox(
                         label="torch.compile",
                         value=self.config.get("anima.anima_torch_compile", False),
-                        info="JIT-compile DiT with torch.compile. Can speed up training a bit. Incompatible with Unsloth Offload Checkpointing. (requires triton)",
+                        info="JIT-compile DiT with torch.compile. Maybe can speed up training a bit, but but not exactly. Incompatible with Unsloth Offload Checkpointing. (requires triton)",
                         interactive=True,
                     )
                     self.anima_disable_mmap_load_safetensors = gr.Checkbox(
