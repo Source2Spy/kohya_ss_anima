@@ -1,4 +1,4 @@
-accelerate>=1.7.0
+accelerate>=1.13.0
 aiofiles==23.2.1
 altair==4.2.2
 dadaptation==3.2
@@ -23,7 +23,7 @@ prodigy-plus-schedule-free==1.8.0
 pytorch-lightning==1.9.0
 pytorch-optimizer==3.5.0
 rich>=13.7.1
-safetensors==0.4.4
+safetensors==0.8.0
 schedulefree==1.4
 scipy==1.11.4
 # for T5XXL tokenizer (SD3/FLUX)
