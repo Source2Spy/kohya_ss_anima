@@ -741,6 +741,16 @@ def ensure_base_requirements():
         install("packaging")
 
 
+def sync_dependency_metadata():
+    try:
+        import check_dependency_sync
+
+        check_dependency_sync.sync_pyproject_dependencies()
+        log.info("Synchronized pyproject.toml dependencies from requirements files.")
+    except Exception as e:
+        log.warning(f"Could not synchronize pyproject.toml dependencies: {e}")
+
+
 def run_cmd(run_cmd):
     """
     Execute a command using subprocess.

@@ -25,9 +25,9 @@ if %errorlevel% equ 0 (
     REM Check if the batch was started via double-click
     IF /i "%comspec% /c %~0 " equ "%cmdcmdline:"=%" (
         REM echo This script was started by double clicking.
-        cmd /k uv run --locked --no-sync --link-mode=copy --index-strategy unsafe-best-match kohya_gui.py --noverify %*
+        cmd /k uv run --frozen --no-sync --link-mode=copy --index-strategy unsafe-best-match kohya_gui.py --noverify %*
     ) ELSE (
         REM echo This script was started from a command prompt.
-        uv run --locked --no-sync --link-mode=copy --index-strategy unsafe-best-match kohya_gui.py --noverify %*
+        uv run --frozen --no-sync --link-mode=copy --index-strategy unsafe-best-match kohya_gui.py --noverify %*
     )
 )

@@ -115,6 +115,7 @@ def install_kohya_ss_torch2(headless: bool = False):
         exit(1)
 
     setup_common.update_submodule()
+    setup_common.sync_dependency_metadata()
 
     setup_common.install("pip")
 
