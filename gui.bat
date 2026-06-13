@@ -8,9 +8,6 @@ call .\venv\Scripts\deactivate.bat
 :: Activate the virtual environment
 call .\venv\Scripts\activate.bat
 
-:: Update pip to latest version
-python -m pip install --upgrade pip -q
-
 set PATH=%PATH%;%~dp0venv\Lib\site-packages\torch\lib
 
 echo Starting the GUI... this might take some time...

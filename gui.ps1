@@ -8,8 +8,6 @@ if ($env:VIRTUAL_ENV) {
 # Write-Host "Activating the virtual environment..."
 & .\venv\Scripts\activate
 
-python.exe -m pip install --upgrade pip -q
-
 $env:PATH += ";$($MyInvocation.MyCommand.Path)\venv\Lib\site-packages\torch\lib"
 
 Write-Host "Starting the GUI... this might take some time..."

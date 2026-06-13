@@ -2,6 +2,15 @@ import os
 import sys
 import shutil
 import argparse
+import re
+import shlex
+from importlib import metadata
+
+from packaging.markers import default_environment
+from packaging.requirements import Requirement
+from packaging.specifiers import InvalidSpecifier
+from packaging.version import InvalidVersion, Version
+
 import setup_common
 
 # Get the absolute path of the current file's directory (Kohua_SS project directory)
@@ -19,6 +28,191 @@ from kohya_gui.custom_logging import setup_logging
 # Set up logging
 log = setup_logging()
 log.debug(f"Project directory set to: {project_directory}")
+
+SKIPPED_REQUIREMENT_OPTIONS_WITH_VALUES = {
+    "--extra-index-url",
+    "--index-url",
+    "--find-links",
+    "--trusted-host",
+    "--no-binary",
+    "--only-binary",
+    "-f",
+    "-i",
+}
+
+SKIPPED_REQUIREMENT_OPTIONS_WITHOUT_VALUES = {
+    "--prefer-binary",
+    "--pre",
+}
+
+
+def _strip_inline_comment(line):
+    """Remove normal inline comments without breaking URL fragments."""
+    return re.sub(r"\s+#.*$", "", line).strip()
+
+
+def _resolve_requirement_path(parent_file, included_file):
+    if os.path.isabs(included_file):
+        return included_file
+    return os.path.normpath(os.path.join(os.path.dirname(parent_file), included_file))
+
+
+def _read_requirements(requirements_file, seen=None):
+    requirements_file = os.path.abspath(requirements_file)
+    seen = seen or set()
+    if requirements_file in seen:
+        return
+    seen.add(requirements_file)
+
+    if not os.path.exists(requirements_file):
+        raise FileNotFoundError(f"Requirements file not found: {requirements_file}")
+
+    with open(requirements_file, "r", encoding="utf8") as file:
+        for line_number, raw_line in enumerate(file, start=1):
+            line = _strip_inline_comment(raw_line.strip())
+            if not line or line.startswith("#"):
+                continue
+
+            if line.startswith("-r ") or line.startswith("--requirement "):
+                included_file = line.split(maxsplit=1)[1]
+                yield from _read_requirements(
+                    _resolve_requirement_path(requirements_file, included_file),
+                    seen=seen,
+                )
+                continue
+
+            yield requirements_file, line_number, line
+
+
+def _requirement_from_editable(line):
+    _, editable_target = line.split(maxsplit=1)
+    if "://" in editable_target:
+        return None
+
+    setup_py = os.path.join(project_directory, editable_target, "setup.py")
+    setup_py = os.path.abspath(setup_py)
+    if not os.path.exists(setup_py):
+        return None
+
+    with open(setup_py, "r", encoding="utf8") as file:
+        setup_text = file.read()
+
+    match = re.search(r"name\s*=\s*['\"]([^'\"]+)['\"]", setup_text)
+    if match is None:
+        return None
+
+    return Requirement(match.group(1))
+
+
+def _split_requirement_args(line):
+    parts = shlex.split(line, comments=False, posix=True)
+    requirements = []
+    index = 0
+
+    while index < len(parts):
+        part = parts[index]
+        if part in SKIPPED_REQUIREMENT_OPTIONS_WITH_VALUES:
+            index += 2
+            continue
+        if any(part.startswith(f"{option}=") for option in SKIPPED_REQUIREMENT_OPTIONS_WITH_VALUES):
+            index += 1
+            continue
+        if part in SKIPPED_REQUIREMENT_OPTIONS_WITHOUT_VALUES:
+            index += 1
+            continue
+        if part.startswith("-"):
+            index += 1
+            continue
+        requirements.append(part)
+        index += 1
+
+    return requirements
+
+
+def _parse_requirement_line(line):
+    if line.startswith("-e ") or line.startswith("--editable "):
+        editable_requirement = _requirement_from_editable(line)
+        return [editable_requirement] if editable_requirement is not None else []
+
+    all_skipped_options = (
+        SKIPPED_REQUIREMENT_OPTIONS_WITH_VALUES
+        | SKIPPED_REQUIREMENT_OPTIONS_WITHOUT_VALUES
+    )
+    if any(
+        line.startswith(f"{option} ") or line.startswith(f"{option}=") or line == option
+        for option in all_skipped_options
+    ):
+        return []
+
+    try:
+        return [Requirement(line)]
+    except Exception:
+        parsed_requirements = []
+        for requirement_arg in _split_requirement_args(line):
+            try:
+                parsed_requirements.append(Requirement(requirement_arg))
+            except Exception:
+                log.warning(f"Skipping requirement that cannot be validated without pip: {requirement_arg}")
+        return parsed_requirements
+
+
+def _requirement_applies(requirement):
+    if requirement.marker is None:
+        return True
+    return requirement.marker.evaluate(default_environment())
+
+
+def _requirement_satisfied(requirement):
+    try:
+        installed_version = metadata.version(requirement.name)
+    except metadata.PackageNotFoundError:
+        return False, "not installed"
+
+    if not requirement.specifier:
+        return True, installed_version
+
+    try:
+        is_satisfied = requirement.specifier.contains(
+            Version(installed_version),
+            prereleases=True,
+        )
+    except (InvalidSpecifier, InvalidVersion):
+        is_satisfied = requirement.specifier.contains(
+            installed_version,
+            prereleases=True,
+        )
+
+    return is_satisfied, installed_version
+
+
+def validate_requirements(requirements_file):
+    log.info(f"Validating installed requirements from {requirements_file}...")
+
+    failures = []
+    checked = 0
+
+    for file_path, line_number, line in _read_requirements(requirements_file):
+        for requirement in _parse_requirement_line(line):
+            if not _requirement_applies(requirement):
+                continue
+
+            checked += 1
+            satisfied, installed_version = _requirement_satisfied(requirement)
+            if satisfied:
+                continue
+
+            failures.append(
+                f"{os.path.relpath(file_path, project_directory)}:{line_number}: "
+                f"{requirement} ({installed_version})"
+            )
+
+    if failures:
+        log.error("Requirement validation failed. Run setup to install or update dependencies.")
+        for failure in failures:
+            log.error(f"Missing or incompatible requirement: {failure}")
+        sys.exit(1)
+
+    log.info(f"Requirement validation passed ({checked} packages checked).")
 
 def check_path_with_space():
     """Check if the current working directory contains a space."""
@@ -173,33 +367,19 @@ def main():
     parser.add_argument("--debug", action="store_true", help="Debug on")
     args = parser.parse_args()
 
-    # Update git submodules if necessary
-    log.debug("Updating git submodules...")
-    setup_common.update_submodule()
-
     # Check if PyTorch is installed and log relevant information
     log.debug("Checking if PyTorch is installed...")
-    torch_ver = check_torch()
+    check_torch()
 
     # Check if the Python version is compatible
     log.debug("Checking Python version...")
     if not setup_common.check_python_version():
         sys.exit(1)
 
-    # Install required packages from the specified requirements file
+    # Validate required packages from the specified requirements file
     requirements_file = args.requirements or "requirements_pytorch_windows.txt"
-    log.debug(f"Installing requirements from: {requirements_file}")
-    setup_common.install_requirements_inbulk(
-        requirements_file, show_stdout=True, 
-        # optional_parm="--index-url https://download.pytorch.org/whl/cu124"
-    )
-    
-    # setup_common.install_requirements(requirements_file, check_no_verify_flag=True)
-    
-    # log.debug("Installing additional requirements from: requirements_windows.txt")
-    # setup_common.install_requirements(
-    #     "requirements_windows.txt", check_no_verify_flag=True
-    # )
+    log.debug(f"Validating requirements from: {requirements_file}")
+    validate_requirements(requirements_file)
 
 if __name__ == "__main__":
     log.debug("Starting main function...")
