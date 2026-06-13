@@ -336,6 +336,7 @@ def save_configuration(
     anima_cache_text_encoder_outputs_to_disk,
     anima_blocks_to_swap,
     anima_unsloth_offload_checkpointing,
+    anima_torch_compile,
     anima_disable_mmap_load_safetensors,
     anima_vae_chunk_size,
     anima_vae_disable_cache,
@@ -642,6 +643,7 @@ def open_configuration(
     anima_cache_text_encoder_outputs_to_disk,
     anima_blocks_to_swap,
     anima_unsloth_offload_checkpointing,
+    anima_torch_compile,
     anima_disable_mmap_load_safetensors,
     anima_vae_chunk_size,
     anima_vae_disable_cache,
@@ -1039,6 +1041,7 @@ def train_model(
     anima_cache_text_encoder_outputs_to_disk,
     anima_blocks_to_swap,
     anima_unsloth_offload_checkpointing,
+    anima_torch_compile,
     anima_disable_mmap_load_safetensors,
     anima_vae_chunk_size,
     anima_vae_disable_cache,
@@ -1095,6 +1098,11 @@ def train_model(
         if not anima_vae:
             log.error(
                 "Anima VAE path is required for Anima training. Please set it in the Anima section."
+            )
+            return TRAIN_BUTTON_VISIBLE
+        if anima_torch_compile and anima_unsloth_offload_checkpointing:
+            log.error(
+                "Anima torch.compile is incompatible with Unsloth Offload Checkpointing. Disable one of them."
             )
             return TRAIN_BUTTON_VISIBLE
 
@@ -1646,7 +1654,9 @@ def train_model(
         "color_aug": color_aug,
         "dataset_config": dataset_config,
         "debiased_estimation_loss": debiased_estimation_loss,
-        "dynamo_backend": dynamo_backend,
+        "dynamo_backend": (
+            "inductor" if anima_checkbox and anima_torch_compile and dynamo_backend == "no" else dynamo_backend
+        ),
         "dim_from_weights": dim_from_weights,
         "disable_mmap_load_safetensors": disable_mmap_load_safetensors_value,
         "enable_bucket": enable_bucket,
@@ -1858,6 +1868,7 @@ def train_model(
             else anima_timestep_sampling if anima_checkbox
             else None
         ),
+        "torch_compile": anima_torch_compile if anima_checkbox else None,
         "discrete_flow_shift": (
             float(discrete_flow_shift) if flux1_checkbox
             else float(anima_discrete_flow_shift) if anima_checkbox
@@ -3164,6 +3175,7 @@ def lora_tab(
             anima_training.anima_cache_text_encoder_outputs_to_disk,
             anima_training.anima_blocks_to_swap,
             anima_training.anima_unsloth_offload_checkpointing,
+            anima_training.anima_torch_compile,
             anima_training.anima_disable_mmap_load_safetensors,
             anima_training.vae_chunk_size,
             anima_training.vae_disable_cache,
